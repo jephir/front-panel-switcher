@@ -1,0 +1,7 @@
+{
+    "uuid": "front-panel-switcher@gnome-shell-extensions.jephir.name",
+    "name": "Front panel switcher",
+    "description": "Toggle front panel audio output (e.g. headphone output) from the volume menu.",
+    "url": "http://www.jephir.name/software/front-panel-switcher",
+    "shell-version": ["3.8.3"]
+}
