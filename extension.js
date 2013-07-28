@@ -14,29 +14,70 @@ const GLib = imports.gi.GLib;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 
+let _frontPanelSwitchConnectedId;
+
 function init() {
 }
 
 function enable() {
     let volumeMenu = Main.panel.statusArea.volume;
-    volumeMenu._frontPanelSwitch = new PopupMenu.PopupSwitchMenuItem("Front Panel", _isFrontPanelOn());
-    volumeMenu._frontPanelSwitch.connect('toggled', _toggleFrontPanel);
-    volumeMenu.menu.addMenuItem(volumeMenu._frontPanelSwitch, 1);
+    let cardIndex = _getFrontPanelCard();
+    let frontPanelExists = cardIndex !== -1;
+    if (frontPanelExists) {
+        let isFrontPanelOn = _isFrontPanelOn(cardIndex);
+        volumeMenu._frontPanelSwitch =
+            new PopupMenu.PopupSwitchMenuItem("Front Panel", isFrontPanelOn);
+        _frontPanelSwitchConnectedId =
+            volumeMenu._frontPanelSwitch.connect(
+                    'toggled',
+                    _toggleFrontPanel.bind(this, cardIndex));
+        volumeMenu.menu.addMenuItem(volumeMenu._frontPanelSwitch, 1);
+    } else {
+        volumeMenu._noFrontPanelItem =
+            new PopupMenu.PopupMenuItem("No Front Panel", { reactive: false });
+        volumeMenu.menu.addMenuItem(volumeMenu._noFrontPanelItem, 1);
+    }
 }
 
 function disable() {
     let volumeMenu = Main.panel.statusArea.volume;
-    volumeMenu._frontPanelSwitch.destroy();
+    if (volumeMenu._frontPanelSwitch) {
+        volumeMenu._frontPanelSwitch.disconnect(_frontPanelSwitchConnectedId);
+        volumeMenu._frontPanelSwitch.destroy();
+    }
+    if (volumeMenu._noFrontPanelItem) {
+        volumeMenu._noFrontPanelItem.destroy();
+    }
+}
+
+// returns the card number of the first card that provides front panel controls
+// if no card is found, returns -1
+function _getFrontPanelCard() {
+    let numCardsCommandOutput = GLib.spawn_command_line_sync("amixer info");
+    let numCardsRegexOutput = /Simple ctrls\s*:\s*(\d+)/.exec(numCardsCommandOutput);
+    let numCardsString = numCardsRegexOutput[1];
+    let numCards = parseInt(numCardsString, 10);
+    for (let i = 0; i < numCards; ++i) {
+        let hasFrontPanelCommandOutput =
+            GLib.spawn_command_line_sync("amixer -c " + i + " controls");
+        let hasFrontPanel = /Front Panel/.test(hasFrontPanelCommandOutput);
+        if (hasFrontPanel) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 // returns true if the front panel is on; otherwise false
-function _isFrontPanelOn() {
-    let frontPanelStatusString = GLib.spawn_command_line_sync("amixer -c 0 get 'Front Panel'");
-    let frontPanelStatus = /Playback \[(on|off)\]/.exec(frontPanelStatusString)[1];
-    return frontPanelStatus === 'on';
+function _isFrontPanelOn(cardNum) {
+    let frontPanelStatusCommandOutput
+        = GLib.spawn_command_line_sync("amixer -c " + cardNum + " get 'Front Panel'");
+    let frontPanelStatusRegexOutput = /Playback \[(on|off)\]/.exec(frontPanelStatusCommandOutput);
+    let frontPanelStatusString = frontPanelStatusRegexOutput[1];
+    return frontPanelStatusString === 'on';
 }
 
 // toggles front panel output using alsa
-function _toggleFrontPanel() {
-    GLib.spawn_command_line_sync("amixer -q -c 0 set 'Front Panel' toggle");
+function _toggleFrontPanel(cardNum) {
+    GLib.spawn_command_line_sync("amixer -q -c " + cardNum + " set 'Front Panel' toggle");
 }
