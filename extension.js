@@ -23,16 +23,32 @@ function enable() {
     let volumeMenu = Main.panel.statusArea.volume;
     let cardIndex = _getFrontPanelCard();
     let frontPanelExists = cardIndex !== -1;
+
     if (frontPanelExists) {
         let isFrontPanelOn = _isFrontPanelOn(cardIndex);
+
+        // create front panel switch
         volumeMenu._frontPanelSwitch =
             new PopupMenu.PopupSwitchMenuItem("Front Panel", isFrontPanelOn);
+
+        // connect switch callback
         _frontPanelSwitchConnectedId =
             volumeMenu._frontPanelSwitch.connect(
                     'toggled',
                     _toggleFrontPanel.bind(this, cardIndex));
+
+        // add switch to volume menu
         volumeMenu.menu.addMenuItem(volumeMenu._frontPanelSwitch, 1);
+
+        // update switch status when volume menu opened
+        volumeMenu.menu.connect('open-state-changed', function () {
+          var isFrontPanelOn = _isFrontPanelOn(cardIndex);
+          volumeMenu._frontPanelSwitch.setToggleState(isFrontPanelOn);
+        });
+
     } else {
+
+        // display "front panel not found" label
         volumeMenu._noFrontPanelItem =
             new PopupMenu.PopupMenuItem("No Front Panel", { reactive: false });
         volumeMenu.menu.addMenuItem(volumeMenu._noFrontPanelItem, 1);
