@@ -16,7 +16,14 @@ const PopupMenu = imports.ui.popupMenu;
 
 let _frontPanelSwitchConnectedId;
 
+const Gettext = imports.gettext.domain('front-panel-switcher');
+const _ = Gettext.gettext;
+
+const Me = imports.misc.extensionUtils.getCurrentExtension();
+const Convenience = Me.imports.convenience;
+
 function init() {
+    Convenience.initTranslations("front-panel-switcher");
 }
 
 function enable() {
@@ -29,7 +36,7 @@ function enable() {
 
         // create front panel switch
         volumeMenu._frontPanelSwitch =
-            new PopupMenu.PopupSwitchMenuItem("Front Panel", isFrontPanelOn);
+            new PopupMenu.PopupSwitchMenuItem(_("Front Panel"), isFrontPanelOn);
 
         // connect switch callback
         _frontPanelSwitchConnectedId =
@@ -50,7 +57,7 @@ function enable() {
 
         // display "front panel not found" label
         volumeMenu._noFrontPanelItem =
-            new PopupMenu.PopupMenuItem("No Front Panel", { reactive: false });
+            new PopupMenu.PopupMenuItem(_("No Front Panel"), { reactive: false });
         volumeMenu.menu.addMenuItem(volumeMenu._noFrontPanelItem, 1);
     }
 }
